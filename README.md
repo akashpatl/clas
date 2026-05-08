@@ -1,4 +1,8 @@
-# CLAS
+<p align="center">
+  <img src="docs/logo.png" alt="CLAS" width="180" />
+</p>
+
+<h1 align="center">CLAS</h1>
 
 A native macOS menu-bar app that shows you which Claude Code sessions need your attention, and gets you back to them in one keystroke.
 
