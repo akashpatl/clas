@@ -7,9 +7,10 @@ A native macOS menu-bar app that shows you which Claude Code sessions need your 
 <!-- TODO: add a screenshot of the menu bar item with count, the popover, and the HUD. -->
 
 <img width="724" height="519" alt="clas_expanded_sanitized" src="https://github.com/user-attachments/assets/17b7edb3-b425-4ef2-96d9-659a6e78d37a" />
+HUD display
 
 <img width="479" height="393" alt="clas_compact_sanitized" src="https://github.com/user-attachments/assets/a053924f-4f46-4b6d-a1cd-79b528f73667" />
-
+Menu bar
 
 
 ## What it does
