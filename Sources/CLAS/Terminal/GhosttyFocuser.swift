@@ -72,7 +72,17 @@ final class GhosttyFocuser {
                     if targetTerminal is not missing value then exit repeat
                 end repeat
             else
-                -- Unnamed session: only focus when cwd uniquely identifies.
+                -- Unnamed session: build two candidate lists at session.cwd:
+                --   * `claudeCandidates` — terminals whose title starts with a
+                --     non-ASCII status icon (✳, ⠂, ⠐, etc.). Claude Code emits
+                --     these in its OSC title; bare zsh shells never do (their
+                --     prompt-driven titles look like "user@host:path").
+                --   * `anyCandidates` — every terminal at the cwd, claude or not.
+                -- We focus the unique non-ASCII-prefixed terminal if there is
+                -- one (the strongest claude signal we get without pid/tty);
+                -- otherwise fall back to "exactly one terminal at cwd".
+                set claudeCandidates to {}
+                set anyCandidates to {}
                 repeat with w in windows
                     repeat with tb in tabs of w
                         repeat with term in terminals of tb
@@ -81,17 +91,30 @@ final class GhosttyFocuser {
                                 set twd to working directory of term
                             end try
                             if twd is wantedCwd then
-                                set candidateCount to candidateCount + 1
-                                if candidateCount is 1 then
-                                    set targetTerminal to term
-                                else
-                                    -- More than one match — refuse to pick.
-                                    set targetTerminal to missing value
+                                set end of anyCandidates to term
+                                set tn to ""
+                                try
+                                    set tn to name of term
+                                end try
+                                if (length of tn) > 0 then
+                                    try
+                                        if (id of character 1 of tn) > 127 then
+                                            set end of claudeCandidates to term
+                                        end if
+                                    end try
                                 end if
                             end if
                         end repeat
                     end repeat
                 end repeat
+
+                if (count of claudeCandidates) is 1 then
+                    set targetTerminal to item 1 of claudeCandidates
+                else if (count of anyCandidates) is 1 then
+                    set targetTerminal to item 1 of anyCandidates
+                else
+                    set candidateCount to count of anyCandidates
+                end if
             end if
 
             if targetTerminal is not missing value then
