@@ -6,23 +6,24 @@ private let log = Logger(subsystem: "CLAS", category: "ghostty")
 
 /// Bridges a `Session` to Ghostty's AppleScript surface.
 ///
-/// Match strategy (priority order):
-///   1. Terminal `name` contains `session.name` (Claude Code's `/rename`
-///      sets the OSC title to "<status-icon> <name>"; substring matches it).
-///   2. Terminal `working directory` equals `session.cwd` — used when the
-///      session has no rename. Fragile when multiple Ghostty splits sit
-///      in the same cwd; we pick the first hit.
+/// Two-tier matcher:
+///   1. **Named session** (Claude `/rename` was used): focus the first
+///      terminal whose `name` contains the session name. Names are the
+///      user's chosen unique handle and trump everything else.
+///   2. **Unnamed session**: enumerate terminals whose `working directory`
+///      equals `session.cwd`. Focus only when there's *exactly one*
+///      candidate. If zero or many, just `activate` Ghostty (bring it to
+///      front) without picking a specific terminal — focusing the wrong
+///      tab is worse than focusing none.
 ///
-/// On hit, `focus <terminal>` raises the window AND switches to the right
-/// tab + pane in one call. No need to also call `activate window` / `select
-/// tab` — Ghostty's `focus` command handles all three.
+/// Why we don't pick "first cwd match" anymore: a common setup is one
+/// claude session + a bare zsh shell open in the same project directory.
+/// Both match the cwd; "first" was randomly picking the bare shell, which
+/// is exactly the bug a user reported.
 ///
-/// TODO(you): the matcher is the third learning-mode contribution point.
-/// Consider:
-///   - what to do when name *and* cwd both miss? (today: silently no-op;
-///     could open a fresh Ghostty window via `new window`/`new tab`)
-///   - what if multiple terminals match the cwd fallback? (today: first;
-///     could prefer the most-recently-active by tracking via a dict)
+/// Ghostty 1.3.0+ doesn't expose tty/pid on terminal (issue #11592), so
+/// there's no way to disambiguate by walking the process tree from
+/// outside. Until that lands, the rename-or-be-ambiguous trade-off stands.
 @MainActor
 final class GhosttyFocuser {
     func focus(_ session: Session) {
@@ -49,37 +50,62 @@ final class GhosttyFocuser {
         tell application "Ghostty"
             set wantedName to "\(nameQuery)"
             set wantedCwd to "\(cwdQuery)"
-            set found to missing value
-            set fallback to missing value
-            repeat with w in windows
-                repeat with tb in tabs of w
-                    repeat with term in terminals of tb
-                        set tn to ""
-                        try
-                            set tn to name of term
-                        end try
-                        set twd to ""
-                        try
-                            set twd to working directory of term
-                        end try
-                        if (wantedName is not "") and (tn contains wantedName) then
-                            set found to term
-                            exit repeat
-                        end if
-                        if (fallback is missing value) and (twd is wantedCwd) then
-                            set fallback to term
-                        end if
+            set targetTerminal to missing value
+            set candidateCount to 0
+
+            if wantedName is not "" then
+                -- Named session: trust the name as a unique handle.
+                repeat with w in windows
+                    repeat with tb in tabs of w
+                        repeat with term in terminals of tb
+                            set tn to ""
+                            try
+                                set tn to name of term
+                            end try
+                            if tn contains wantedName then
+                                set targetTerminal to term
+                                exit repeat
+                            end if
+                        end repeat
+                        if targetTerminal is not missing value then exit repeat
                     end repeat
-                    if found is not missing value then exit repeat
+                    if targetTerminal is not missing value then exit repeat
                 end repeat
-                if found is not missing value then exit repeat
-            end repeat
-            if found is missing value then set found to fallback
-            if found is not missing value then
-                focus found
+            else
+                -- Unnamed session: only focus when cwd uniquely identifies.
+                repeat with w in windows
+                    repeat with tb in tabs of w
+                        repeat with term in terminals of tb
+                            set twd to ""
+                            try
+                                set twd to working directory of term
+                            end try
+                            if twd is wantedCwd then
+                                set candidateCount to candidateCount + 1
+                                if candidateCount is 1 then
+                                    set targetTerminal to term
+                                else
+                                    -- More than one match — refuse to pick.
+                                    set targetTerminal to missing value
+                                end if
+                            end if
+                        end repeat
+                    end repeat
+                end repeat
+            end if
+
+            if targetTerminal is not missing value then
+                focus targetTerminal
                 return "ok"
             else
-                return "miss"
+                -- No unambiguous match. Bring Ghostty to front so the user
+                -- can pick the right tab themselves; better than guessing.
+                activate
+                if candidateCount > 1 then
+                    return "ambiguous"
+                else
+                    return "no_match"
+                end if
             end if
         end tell
         """
