@@ -66,7 +66,14 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 echo "==> Ad-hoc signing"
-codesign --force --deep --sign - "$APP" >/dev/null
+# codesign emits a non-zero exit on the "unsealed contents present in the
+# bundle root" warning that fires because SPM resource bundles live at
+# the .app root (outside Contents/). Cosmetic for ad-hoc signing — the
+# .app still launches via the right-click → Open flow — so don't fail
+# the script. A future Apple Developer ID + notarisation pass will need
+# to address this properly (likely by symlinking the bundle or patching
+# the SPM accessor).
+codesign --force --deep --sign - "$APP" 2>&1 || true
 
 echo "==> Generating SETUP.md"
 cat > "${ROOT}/dist/SETUP.md" <<'MD'
