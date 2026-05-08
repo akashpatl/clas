@@ -149,7 +149,11 @@ Sources/CLAS/
 
 ## Status
 
-Pre-1.0. Works on the author's machine; expect rough edges. Things known to be unfinished:
+Pre-1.0. Works on the author's machine; expect rough edges.
+
+> ⚠️ **CLAS depends on the *undocumented* schema of `~/.claude/sessions/{pid}.json`.** If a future Claude Code release changes how `status`, `waitingFor`, `updatedAt`, or the directory layout are written, CLAS will silently degrade (sessions appearing as "idle" or vanishing from the list) until the model is updated. Decoding is defensive — missing fields don't crash — but the relationship is fragile by design and worth knowing about before relying on it.
+
+Other known gaps:
 
 - Only Ghostty is wired up for click-to-focus. iTerm2 / Terminal.app / Warp are not yet supported.
 - Notifications come from `osascript` rather than `UNUserNotificationCenter`, so banners don't deep-link back to CLAS when clicked.
@@ -158,7 +162,7 @@ Pre-1.0. Works on the author's machine; expect rough edges. Things known to be u
 
 ## Contributing
 
-Issues and PRs welcome once the repo goes public. Until then, this is a personal scratchpad — feel free to fork.
+Issues and PRs welcome. When filing a bug please include macOS version, Claude Code CLI version (`claude --version`), Ghostty version, and a paste of `/usr/bin/log show --predicate 'subsystem == "CLAS"' --last 5m --info` if relevant — the issue template will prompt you for these.
 
 ## License
 

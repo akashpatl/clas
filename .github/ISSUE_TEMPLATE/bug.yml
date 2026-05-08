@@ -1,0 +1,73 @@
+name: Bug report
+description: Something doesn't work right
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! The fields below are the ones that almost
+        always determine whether a bug is reproducible. Filling them out
+        lets the maintainer skip the back-and-forth.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what actually happened?
+      placeholder: |
+        1. Started CLAS
+        2. Pressed ⌥Space
+        3. Expected the HUD to open; nothing happened
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      description: Apple menu → About This Mac
+      placeholder: "14.5 (Sonoma)"
+    validations:
+      required: true
+  - type: input
+    id: claude-version
+    attributes:
+      label: Claude Code CLI version
+      description: Run `claude --version`
+      placeholder: "2.1.119"
+    validations:
+      required: true
+  - type: input
+    id: ghostty-version
+    attributes:
+      label: Ghostty version (if relevant)
+      description: Ghostty menu → About Ghostty, or `ghostty --version`
+      placeholder: "1.3.0"
+    validations:
+      required: false
+  - type: input
+    id: clas-version
+    attributes:
+      label: CLAS version
+      description: From the menu bar popover, or the release tag you installed
+      placeholder: "v0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Install method
+      options:
+        - Pre-built .app from Releases
+        - Built from source (swift build)
+        - Built from source (./scripts/bundle.sh)
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Paste relevant output of:
+        `/usr/bin/log show --predicate 'subsystem == "CLAS"' --last 5m --info`
+      render: shell
+    validations:
+      required: false
