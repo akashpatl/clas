@@ -61,6 +61,17 @@ struct Session: Codable, Identifiable, Equatable {
         return (cwd as NSString).lastPathComponent
     }
 
+    /// Sessions are focusable only when the user has set a name via Claude
+    /// Code's `/rename`. Without a name, CLAS has no reliable way to pick
+    /// the right Ghostty terminal — name is the only unique handle Ghostty's
+    /// AppleScript dictionary exposes per terminal (no pid/tty until
+    /// ghostty-org/ghostty#11592 lands). Rather than navigating to the
+    /// wrong tab, we surface this as a UX rule: unnamed → not navigable.
+    var isFocusable: Bool {
+        guard let name else { return false }
+        return !name.isEmpty
+    }
+
     var startedAtDate: Date? {
         startedAt.map { Date(timeIntervalSince1970: TimeInterval($0) / 1000) }
     }

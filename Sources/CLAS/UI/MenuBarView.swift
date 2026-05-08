@@ -93,9 +93,7 @@ struct SessionRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     statusDot
-                    Text(session.displayTitle)
-                        .font(.body)
-                        .lineLimit(1)
+                    titleText
                     Spacer()
                 }
                 previewLine
@@ -105,16 +103,37 @@ struct SessionRow: View {
                         .foregroundStyle(.orange)
                         .lineLimit(2)
                 }
+                if !session.isFocusable {
+                    Text("Run /rename in claude to enable focus")
+                        .font(.caption2.italic())
+                        .foregroundStyle(.tertiary)
+                }
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .opacity(session.isFocusable ? 1.0 : 0.55)
         .contentShape(Rectangle())
-        .background(hovering ? Color.primary.opacity(0.06) : Color.clear)
+        .background(hovering && session.isFocusable ? Color.primary.opacity(0.06) : Color.clear)
         .onTapGesture { onClick() }
         .onHover { hovering = $0 }
-        .help(session.cwd)
+        .help(session.isFocusable ? session.cwd : "\(session.cwd) — /rename to enable focus")
+    }
+
+    @ViewBuilder
+    private var titleText: some View {
+        // Italic for unfocusable (auto-derived from cwd) sessions to signal
+        // "this isn't a real /rename name; you can't navigate to this".
+        if session.isFocusable {
+            Text(session.displayTitle)
+                .font(.body)
+                .lineLimit(1)
+        } else {
+            Text(session.displayTitle)
+                .font(.body.italic())
+                .lineLimit(1)
+        }
     }
 
     @ViewBuilder

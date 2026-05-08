@@ -178,9 +178,7 @@ private struct HUDRow: View {
             statusIndicator
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
-                    Text(session.displayTitle)
-                        .font(.body.weight(.medium))
-                        .lineLimit(1)
+                    titleText
                     Text(session.cwd)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -197,12 +195,18 @@ private struct HUDRow: View {
                     }
                     .foregroundStyle(.orange)
                 }
+                if !session.isFocusable {
+                    Text("Run /rename in claude to enable focus")
+                        .font(.caption2.italic())
+                        .foregroundStyle(.tertiary)
+                }
             }
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .opacity(session.isFocusable ? 1.0 : 0.55)
         .contentShape(Rectangle())
         .background(alignment: .leading) {
             ZStack(alignment: .leading) {
@@ -218,6 +222,21 @@ private struct HUDRow: View {
         }
         .onTapGesture { onClick() }
         .onHover { hovering in if hovering { onHover() } }
+    }
+
+    @ViewBuilder
+    private var titleText: some View {
+        // Italic for unfocusable (auto-derived from cwd) sessions to signal
+        // "this isn't a real /rename name; you can't navigate to this".
+        if session.isFocusable {
+            Text(session.displayTitle)
+                .font(.body.weight(.medium))
+                .lineLimit(1)
+        } else {
+            Text(session.displayTitle)
+                .font(.body.weight(.medium).italic())
+                .lineLimit(1)
+        }
     }
 
     @ViewBuilder
