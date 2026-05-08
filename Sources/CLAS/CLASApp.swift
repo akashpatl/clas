@@ -63,9 +63,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// then raises the right Ghostty terminal. Ghostty becoming frontmost
     /// also auto-dismisses the popover, so we don't need to close it
     /// explicitly.
+    ///
+    /// On focus failure (ambiguous / no_match / Ghostty not running) we
+    /// post a banner explaining why — silent activate-only previously
+    /// looked like a CLAS bug to users.
     func activate(_ session: Session) {
         attention.dismiss(session)
-        focuser.focus(session)
+        let notifier = self.notifier
+        focuser.focus(session) { result in
+            switch result {
+            case .ambiguous, .noMatch, .ghosttyNotRunning:
+                notifier.notifyFocusFailure(session, reason: result)
+            case .ok, .error:
+                break
+            }
+        }
     }
 }
 

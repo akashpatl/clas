@@ -36,6 +36,34 @@ final class Notifier {
         post(title: title, subtitle: subtitle, body: body, sound: "Glass")
     }
 
+    /// Banner explaining why a click on a session row didn't focus a tab.
+    /// Different dedupe key than `notifyWaiting` so the two channels can't
+    /// suppress each other.
+    func notifyFocusFailure(_ session: Session, reason: GhosttyFocuser.FocusResult) {
+        let key = "miss-\(session.sessionId)"
+        if let last = lastFiredAt[key],
+           Date().timeIntervalSince(last) < dedupeWindow {
+            return
+        }
+        lastFiredAt[key] = Date()
+
+        let body: String
+        switch reason {
+        case .ambiguous:
+            body = "Multiple terminals at this directory. Use /rename in claude to make focus deterministic."
+        case .noMatch:
+            body = "No Ghostty tab found — the terminal might be in a closed window or another app."
+        case .ghosttyNotRunning:
+            body = "Ghostty isn't running."
+        case .ok, .error:
+            return // shouldn't be called for these, but defensive
+        }
+        post(title: "Couldn't focus \(session.displayTitle)",
+             subtitle: session.cwd,
+             body: body,
+             sound: nil)
+    }
+
     private func post(title: String, subtitle: String, body: String, sound: String?) {
         let script = """
         display notification "\(body.appleScriptEscaped)" with title "\(title.appleScriptEscaped)" subtitle "\(subtitle.appleScriptEscaped)"\(sound.map { " sound name \"\($0)\"" } ?? "")

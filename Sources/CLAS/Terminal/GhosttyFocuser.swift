@@ -26,7 +26,15 @@ private let log = Logger(subsystem: "CLAS", category: "ghostty")
 /// outside. Until that lands, the rename-or-be-ambiguous trade-off stands.
 @MainActor
 final class GhosttyFocuser {
-    func focus(_ session: Session) {
+    enum FocusResult: String, Sendable {
+        case ok                  // landed on a specific terminal
+        case ambiguous           // multiple candidates at cwd, refused to pick
+        case noMatch             // zero candidates; Ghostty activated as fallback
+        case ghosttyNotRunning   // Ghostty isn't running at all
+        case error               // AppleScript failed
+    }
+
+    func focus(_ session: Session, completion: @escaping @MainActor (FocusResult) -> Void = { _ in }) {
         // Don't auto-launch Ghostty on click if it isn't running.
         // The implicit-launch behaviour of `tell application "Ghostty"`
         // is surprising — clicking a row would pop open an empty window.
@@ -34,12 +42,14 @@ final class GhosttyFocuser {
             $0.bundleIdentifier == "com.mitchellh.ghostty"
         }) else {
             log.info("focus skipped: Ghostty not running")
+            completion(.ghosttyNotRunning)
             return
         }
         let source = buildScript(for: session)
         log.info("focus pid=\(session.pid, privacy: .public) name=\(session.name ?? "(unnamed)", privacy: .private)")
         Task.detached(priority: .userInitiated) {
-            await Self.run(source)
+            let result = await Self.run(source)
+            await MainActor.run { completion(result) }
         }
     }
 
@@ -134,17 +144,19 @@ final class GhosttyFocuser {
         """
     }
 
-    nonisolated static func run(_ source: String) async {
+    nonisolated static func run(_ source: String) async -> FocusResult {
         var error: NSDictionary?
         guard let script = NSAppleScript(source: source) else {
             log.error("NSAppleScript init failed")
-            return
+            return .error
         }
         let result = script.executeAndReturnError(&error)
         if let error {
             log.error("focus AppleScript error: \(String(describing: error), privacy: .public)")
-        } else if let s = result.stringValue {
-            log.info("focus result: \(s, privacy: .public)")
+            return .error
         }
+        let raw = result.stringValue ?? ""
+        log.info("focus result: \(raw, privacy: .public)")
+        return FocusResult(rawValue: raw) ?? .error
     }
 }
