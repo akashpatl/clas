@@ -32,6 +32,18 @@ cp ".build/release/${BIN}" "$APP/Contents/MacOS/${BIN}"
 cp hooks/notify-sidebar.sh "$APP/Contents/Resources/notify-sidebar.sh"
 chmod +x "$APP/Contents/Resources/notify-sidebar.sh"
 
+# Copy SPM-generated resource bundles to the .app ROOT (not Contents/Resources).
+# Reason: SPM emits a `resource_bundle_accessor.swift` per package that resolves
+# bundles via `Bundle.main.bundleURL.appendingPathComponent(...)`, which on
+# macOS is the .app directory itself (not Contents/Resources). Without this
+# step, KeyboardShortcuts crashes on first hotkey access trying to load its
+# resources from /Applications/CLAS.app/<Pkg>_<Pkg>.bundle.
+shopt -s nullglob
+for b in .build/release/*.bundle; do
+    cp -R "$b" "$APP/"
+done
+shopt -u nullglob
+
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
