@@ -4,13 +4,20 @@ A native macOS menu-bar app that shows you which Claude Code sessions need your 
 
 > If you run more than one `claude` at a time across terminal tabs, you've probably caught yourself glancing at the wrong window for a few seconds before realising the prompt was waiting on you somewhere else. CLAS exists for that.
 
-<!-- TODO: add a screenshot of the menu bar item with count, the popover, and the HUD. -->
+<p align="center">
+  <img width="724" alt="CLAS HUD overlay" src="https://github.com/user-attachments/assets/17b7edb3-b425-4ef2-96d9-659a6e78d37a" />
+  <br>
+  <em>HUD overlay (⌥Space)</em>
+</p>
 
-<img width="724" height="519" alt="clas_expanded_sanitized" src="https://github.com/user-attachments/assets/17b7edb3-b425-4ef2-96d9-659a6e78d37a" />
-HUD display
+<br>
+<br>
 
-<img width="479" height="393" alt="clas_compact_sanitized" src="https://github.com/user-attachments/assets/a053924f-4f46-4b6d-a1cd-79b528f73667" />
-Menu bar
+<p align="center">
+  <img width="479" alt="CLAS menu bar popover" src="https://github.com/user-attachments/assets/a053924f-4f46-4b6d-a1cd-79b528f73667" />
+  <br>
+  <em>Menu bar popover</em>
+</p>
 
 
 ## What it does
