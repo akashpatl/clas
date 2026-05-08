@@ -23,6 +23,9 @@ DerivedData/
 /tmp/
 /coverage/
 
+# Bundle output
+/dist/
+
 # Local environment
 .env
 .env.local
