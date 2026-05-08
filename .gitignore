@@ -26,6 +26,10 @@ DerivedData/
 # Bundle output
 /dist/
 
+# Generated app icon (rebuilt from docs/logo.png by scripts/make-icon.sh
+# and lazily by scripts/bundle.sh)
+/Resources/AppIcon.icns
+
 # Local environment
 .env
 .env.local

@@ -32,6 +32,15 @@ cp ".build/release/${BIN}" "$APP/Contents/MacOS/${BIN}"
 cp hooks/notify-sidebar.sh "$APP/Contents/Resources/notify-sidebar.sh"
 chmod +x "$APP/Contents/Resources/notify-sidebar.sh"
 
+# App icon: regenerated lazily if missing, so a fresh checkout doesn't
+# need to remember to run make-icon.sh first.
+if [[ ! -f "${ROOT}/Resources/AppIcon.icns" && -f "${ROOT}/docs/logo.png" ]]; then
+    "${ROOT}/scripts/make-icon.sh"
+fi
+if [[ -f "${ROOT}/Resources/AppIcon.icns" ]]; then
+    cp "${ROOT}/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
+fi
+
 # Copy SPM-generated resource bundles to the .app ROOT (not Contents/Resources).
 # Reason: SPM emits a `resource_bundle_accessor.swift` per package that resolves
 # bundles via `Bundle.main.bundleURL.appendingPathComponent(...)`, which on
@@ -56,6 +65,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleName</key><string>CLAS</string>
     <key>CFBundleDisplayName</key><string>CLAS</string>
     <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
     <key>CFBundleVersion</key><string>1</string>
     <key>LSMinimumSystemVersion</key><string>14.0</string>
