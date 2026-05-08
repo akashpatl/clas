@@ -99,22 +99,36 @@ struct HUDView: View {
             .padding(.vertical, 60)
         } else {
             let rows = sortedSessions
-            ScrollView {
-                VStack(spacing: 0) {
-                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, session in
-                        HUDRow(
-                            session: session,
-                            isSelected: index == selectedIndex,
-                            onHover: { selectedIndex = index },
-                            onClick: { onSelect(session) }
-                        )
-                        if index < rows.count - 1 {
-                            Divider().opacity(0.2)
+            // ScrollViewReader lets us follow keyboard navigation past the
+            // visible window. Without it, ↑/↓ moves the highlight off-screen
+            // because SwiftUI's ScrollView never auto-tracks selection.
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(Array(rows.enumerated()), id: \.element.id) { index, session in
+                            HUDRow(
+                                session: session,
+                                isSelected: index == selectedIndex,
+                                onHover: { selectedIndex = index },
+                                onClick: { onSelect(session) }
+                            )
+                            .id(session.id)
+                            if index < rows.count - 1 {
+                                Divider().opacity(0.2)
+                            }
                         }
                     }
                 }
+                .frame(maxHeight: 460)
+                .onChange(of: selectedIndex) { _, newIndex in
+                    guard rows.indices.contains(newIndex) else { return }
+                    withAnimation(.easeOut(duration: 0.12)) {
+                        // No anchor: scrolls the minimum amount needed to bring
+                        // the row into view. Less jumpy than .top/.center.
+                        proxy.scrollTo(rows[newIndex].id)
+                    }
+                }
             }
-            .frame(maxHeight: 460)
         }
     }
 
