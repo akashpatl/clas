@@ -52,9 +52,14 @@ final class SessionStore {
     /// cycles). Keying by sessionId means a new sessionId on the same pid
     /// correctly fires `.appeared` instead of being misread as a status
     /// change on the old session.
+    ///
+    /// Two PIDs CAN legitimately share one sessionId — e.g. two
+    /// `claude --resume <id>` invocations running concurrently in the same
+    /// cwd. We collapse to last-wins rather than crashing; the diff still
+    /// reflects the latest visible state for that sessionId.
     static func diff(old: [Session], new: [Session]) -> [SessionEvent] {
-        let oldByID = Dictionary(uniqueKeysWithValues: old.map { ($0.sessionId, $0) })
-        let newByID = Dictionary(uniqueKeysWithValues: new.map { ($0.sessionId, $0) })
+        let oldByID = Dictionary(old.map { ($0.sessionId, $0) }, uniquingKeysWith: { _, b in b })
+        let newByID = Dictionary(new.map { ($0.sessionId, $0) }, uniquingKeysWith: { _, b in b })
         var events: [SessionEvent] = []
 
         for (sid, session) in newByID {
