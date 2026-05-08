@@ -1,0 +1,28 @@
+# Swift / SPM
+.build/
+.swiftpm/
+# Package.resolved is intentionally tracked — this is an executable,
+# not a library, so we want a reproducible lockfile in the repo.
+*.xcodeproj/
+DerivedData/
+*.hmap
+*.ipa
+*.xcuserstate
+
+# macOS
+.DS_Store
+*.swp
+*~.nib
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# Logs / runtime artefacts
+*.log
+/tmp/
+/coverage/
+
+# Local environment
+.env
+.env.local
