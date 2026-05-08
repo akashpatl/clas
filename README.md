@@ -45,21 +45,28 @@ That's the whole data pipeline. No private APIs, no scraping, no agents-running-
 
 ## Install
 
-Until binary releases ship, build from source:
+### Pre-built `.app` (recommended)
+
+1. Download the latest `CLAS-*.zip` from [Releases](https://github.com/akashpatl/clas/releases).
+2. Unzip and drag **CLAS.app** into `/Applications/`.
+3. **First launch:** right-click the app → **Open** → click *Open* again. CLAS isn't notarised yet, so macOS Gatekeeper requires this once. Subsequent launches are normal.
+4. You'll see a hollow circle in the menu bar — that's CLAS, watching for sessions that need you.
+
+### Build from source (developers)
 
 ```bash
 git clone https://github.com/akashpatl/clas.git
 cd clas
-swift build -c release
+./scripts/bundle.sh        # produces dist/CLAS.app
+open dist/CLAS.app
 ```
 
-Run the app:
+Or for the bare SPM binary without bundling:
 
 ```bash
+swift build -c release
 .build/release/CLAS &
 ```
-
-The app is a pure menu-bar accessory — no Dock icon. You'll see a hollow circle in the menu bar.
 
 ### Wire up the instant-notification hook (recommended)
 
@@ -145,7 +152,8 @@ Sources/CLAS/
 Pre-1.0. Works on the author's machine; expect rough edges. Things known to be unfinished:
 
 - Only Ghostty is wired up for click-to-focus. iTerm2 / Terminal.app / Warp are not yet supported.
-- Not packaged as a `.app` bundle. The SPM build runs as a bare executable, which means notifications come from `osascript` rather than `UNUserNotificationCenter`. No deep-link from notification banners.
+- Notifications come from `osascript` rather than `UNUserNotificationCenter`, so banners don't deep-link back to CLAS when clicked.
+- Not Apple-notarised; first launch requires the right-click → Open Gatekeeper bypass.
 - No autostart-at-login wiring.
 
 ## Contributing
