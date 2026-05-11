@@ -1,6 +1,10 @@
 import SwiftUI
 
 struct HUDView: View {
+    /// Fixed height of the scrollable session area. Locked so the panel
+    /// doesn't reshape when the filter narrows or widens.
+    private static let contentHeight: CGFloat = 460
+
     let store: SessionStore
     let attention: AttentionTracker
     let onSelect: (Session) -> Void
@@ -92,21 +96,31 @@ struct HUDView: View {
                 peekedSessionId = nil
                 return .handled
             default:
+                // ASCII-only to avoid RTL/zero-width Unicode getting into
+                // searchText for free (spoofing risk on the rendered query).
+                // Only append the validated single character, not
+                // `keyPress.characters` — IME composition can deliver a
+                // multi-char string that bypasses the per-char guard.
                 guard let ch = keyPress.characters.first,
+                      ch.isASCII,
                       ch.isLetter || ch.isNumber || ch == " " || ch == "-" || ch == "_" || ch == "/" || ch == "." else {
                     return .ignored
                 }
-                searchText.append(keyPress.characters)
+                searchText.append(ch)
                 return .handled
             }
         }
         .onChange(of: searchText) { _, _ in
-            // Filter changed — keep selectedIndex valid, and drop any
-            // peek (the peeked row may have been filtered out anyway).
-            peekedSessionId = nil
             let rows = filteredSessions
+            // Only clear peek if the peeked session is no longer visible.
+            // The previous unconditional clear meant: peek row A, type a
+            // filter that hides A, clear the filter — A came back but its
+            // peek was gone.
+            if let peeked = peekedSessionId, !rows.contains(where: { $0.sessionId == peeked }) {
+                peekedSessionId = nil
+            }
             if !rows.indices.contains(selectedIndex) {
-                selectedIndex = rows.isEmpty ? 0 : 0
+                selectedIndex = 0
             }
         }
     }
@@ -198,7 +212,7 @@ struct HUDView: View {
                 }
             }
         }
-        .frame(height: 460)
+        .frame(height: Self.contentHeight)
     }
 
     /// Sort + filter — what the rows ForEach actually iterates over.
@@ -218,15 +232,19 @@ struct HUDView: View {
     }
 
     /// MRU sort by user activation: whichever session the user pressed
-    /// (↩ / click) most recently floats to the top. Sessions never
-    /// activated fall back to claude-updated recency as a stable
-    /// tiebreaker so the order doesn't shuffle on app launch.
+    /// (↩ / click) most recently floats to the top. Tiebreakers:
+    /// claude's `updatedAt` desc, then `sessionId` for total stability.
+    /// Without the final tiebreaker, two never-activated sessions that
+    /// both have nil `updatedAt` would shuffle non-deterministically.
     private var sortedSessions: [Session] {
         store.sessions.sorted { lhs, rhs in
             let lActive = attention.lastActivation(of: lhs.sessionId)
             let rActive = attention.lastActivation(of: rhs.sessionId)
             if lActive != rActive { return lActive > rActive }
-            return (lhs.updatedAt ?? 0) > (rhs.updatedAt ?? 0)
+            let lUpdated = lhs.updatedAt ?? 0
+            let rUpdated = rhs.updatedAt ?? 0
+            if lUpdated != rUpdated { return lUpdated > rUpdated }
+            return lhs.sessionId < rhs.sessionId
         }
     }
 
@@ -377,13 +395,20 @@ private struct HUDRow: View {
         }
     }
 
+    /// Static so we don't allocate a fresh formatter on every render —
+    /// the previous instance-property pattern made a new
+    /// `RelativeDateTimeFormatter` each time the row body re-evaluated.
+    private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .abbreviated
+        return f
+    }()
+
     /// "Nm ago" / "just now" — used in peek mode next to the title.
     /// nil when we have no `updatedAt`.
     private var relativeUpdatedLabel: String? {
         guard let date = session.updatedAtDate else { return nil }
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: Date())
+        return Self.relativeFormatter.localizedString(for: date, relativeTo: Date())
     }
 
     private var statusIndicator: some View {

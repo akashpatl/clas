@@ -59,13 +59,19 @@ struct MenuBarView: View {
         .frame(width: 380)
     }
 
-    /// MRU sort by user activation — same rule as the HUD.
+    /// MRU sort by user activation — same rule as the HUD, including the
+    /// `sessionId` tiebreaker for deterministic order when activation
+    /// and `updatedAt` are both equal (e.g. two never-activated sessions
+    /// without an `updatedAt` field).
     private var sortedSessions: [Session] {
         store.sessions.sorted { lhs, rhs in
             let lActive = attention.lastActivation(of: lhs.sessionId)
             let rActive = attention.lastActivation(of: rhs.sessionId)
             if lActive != rActive { return lActive > rActive }
-            return (lhs.updatedAt ?? 0) > (rhs.updatedAt ?? 0)
+            let lUpdated = lhs.updatedAt ?? 0
+            let rUpdated = rhs.updatedAt ?? 0
+            if lUpdated != rUpdated { return lUpdated > rUpdated }
+            return lhs.sessionId < rhs.sessionId
         }
     }
 }
