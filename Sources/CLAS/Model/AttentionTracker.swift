@@ -18,9 +18,20 @@ import Observation
 @MainActor
 final class AttentionTracker {
     /// sessionId → the `updatedAt` value at the moment the user dismissed.
-    /// We store the timestamp rather than a Bool so a fresh claude action
-    /// (which bumps updatedAt) automatically invalidates the dismissal.
+    /// Stores claude's epoch-millis (Int), NOT a wall-clock Date — compared
+    /// directly against `Session.updatedAt`. Storing the timestamp rather
+    /// than a Bool means a fresh claude action (which bumps updatedAt)
+    /// automatically invalidates the dismissal.
     private var dismissedAt: [String: Int] = [:]
+
+    /// sessionId → wall-clock `Date` of the last time the user activated
+    /// this session via the HUD or popover (pressed ↩ or clicked a row).
+    /// Drives MRU sort: the row you just pressed floats to the top next
+    /// time you open the HUD. Independent of claude's `updatedAt`.
+    /// Aged on write: entries older than `activationTTL` get pruned so
+    /// the map doesn't grow unbounded across long-running app lifetimes.
+    private var activatedAt: [String: Date] = [:]
+    private let activationTTL: TimeInterval = 7 * 24 * 60 * 60 // 7 days
 
     /// TODO(you): refine the predicate. The default below treats a session
     /// as "needs attention" when EITHER:
@@ -65,5 +76,22 @@ final class AttentionTracker {
     /// Number of sessions currently in your court.
     func count(in sessions: [Session]) -> Int {
         sessions.lazy.filter { self.needsAttention($0) }.count
+    }
+
+    /// Record that the user has just activated (pressed ↩ / clicked) this
+    /// session in the HUD or popover. Powers the MRU sort.
+    /// Opportunistically prunes any entry older than `activationTTL` so
+    /// the map stays bounded over a long-running app lifetime.
+    func recordActivation(_ s: Session) {
+        let cutoff = Date().addingTimeInterval(-activationTTL)
+        activatedAt = activatedAt.filter { $0.value > cutoff }
+        activatedAt[s.sessionId] = Date()
+    }
+
+    /// Wall-clock time of the last user activation, or `.distantPast`
+    /// for sessions the user has never activated through CLAS. Returning
+    /// `.distantPast` instead of `nil` keeps the sort comparator trivial.
+    func lastActivation(of sessionId: String) -> Date {
+        activatedAt[sessionId] ?? .distantPast
     }
 }
