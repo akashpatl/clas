@@ -12,12 +12,6 @@ struct MenuBarView: View {
                 Text("Claude sessions")
                     .font(.headline)
                 Spacer()
-                let attCount = attention.count(in: store.sessions)
-                if attCount > 0 {
-                    Text("\(attCount) need you")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -65,16 +59,15 @@ struct MenuBarView: View {
         .frame(width: 380)
     }
 
-    /// Attention-needing sessions float to the top.
+    /// MRU sort by user activation — same rule as the HUD.
     private var sortedSessions: [Session] {
         store.sessions.sorted { lhs, rhs in
-            let la = attention.needsAttention(lhs)
-            let ra = attention.needsAttention(rhs)
-            if la != ra { return la }
+            let lActive = attention.lastActivation(of: lhs.sessionId)
+            let rActive = attention.lastActivation(of: rhs.sessionId)
+            if lActive != rActive { return lActive > rActive }
             return (lhs.updatedAt ?? 0) > (rhs.updatedAt ?? 0)
         }
     }
-
 }
 
 struct SessionRow: View {
@@ -169,11 +162,12 @@ struct SessionRow: View {
     }
 
     private var color: Color {
+        // Orange = your turn (waiting OR idle); blue = claude is working.
+        // Grey only for unrecognised status.
         switch session.status {
-        case .waiting: .orange
-        case .busy:    .blue
-        case .idle:    .secondary
-        case .unknown: .gray
+        case .waiting, .idle: .orange
+        case .busy:           .blue
+        case .unknown:        .gray
         }
     }
 }

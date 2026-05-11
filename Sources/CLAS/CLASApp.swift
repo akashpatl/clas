@@ -62,7 +62,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Unfocusable (unnamed) sessions are silently skipped — the row
     /// itself shows a "/rename to navigate" hint, so the user knows why.
     /// For focusable sessions, marks as addressed and focuses Ghostty.
+    ///
+    /// We always record the activation (even for unfocusable rows) so the
+    /// MRU sort reflects what the user actually pressed, regardless of
+    /// whether focus could be delivered.
     func activate(_ session: Session) {
+        attention.recordActivation(session)
         attention.dismiss(session)
         guard session.isFocusable else { return }
         focuser.focus(session)

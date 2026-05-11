@@ -130,11 +130,16 @@ final class TranscriptReader {
         guard let type = obj["type"] as? String else { return nil }
         guard let message = obj["message"] as? [String: Any] else { return nil }
 
+        // Store generously-capped text. The view layer applies `lineLimit(2)`
+        // for collapsed display and `lineLimit(nil)` when peeked, so we must
+        // NOT strip the body up front — doing that would leave peek nothing
+        // extra to show.
+        let cap = 4000
         switch type {
         case "user":
             // String content == user typed; array content == tool_result echo.
             if let text = message["content"] as? String {
-                return LastMessage(role: .user, text: text.trimmed(to: 140))
+                return LastMessage(role: .user, text: text.trimmed(to: cap))
             }
             return nil
 
@@ -146,7 +151,7 @@ final class TranscriptReader {
                 if block["type"] as? String == "text",
                    let text = block["text"] as? String,
                    !text.isEmpty {
-                    return LastMessage(role: .assistant, text: text.trimmed(to: 140))
+                    return LastMessage(role: .assistant, text: text.trimmed(to: cap))
                 }
             }
             return nil

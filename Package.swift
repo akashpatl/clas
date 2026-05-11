@@ -16,7 +16,10 @@ let package = Package(
             dependencies: [
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
-            path: "Sources/CLAS"
+            path: "Sources/CLAS",
+            resources: [
+                .process("Resources/logo.png"),
+            ]
         ),
     ]
 )
